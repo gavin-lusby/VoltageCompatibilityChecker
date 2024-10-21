@@ -35,6 +35,8 @@ for voltage_level in device_entries[0]:
         else: #Vi side
             canvas_test.create_polygon((2, branch_top), (DRAWING_WIDTH/2, branch_top), (DRAWING_WIDTH/2, branch_bottom), (2, branch_bottom))
 
+
+# Acceptable Voltage In Logic 1
 if(v_heights["Vi max"][1] < v_heights["Vih min"][0]-1):
     canvas_test.create_polygon( \
         (2, v_heights["Vi max"][1]), \
@@ -43,6 +45,7 @@ if(v_heights["Vi max"][1] < v_heights["Vih min"][0]-1):
         (2, v_heights["Vih min"][0]), \
         fill="#78B65E")
 
+#Acceptable Voltage In Logic 0
 if(v_heights["Vil max"][1] < v_heights["Vi min"][0]-1):
     canvas_test.create_polygon( \
         (2, v_heights["Vil max"][1]), \
@@ -51,6 +54,7 @@ if(v_heights["Vil max"][1] < v_heights["Vi min"][0]-1):
         (2, v_heights["Vi min"][0]), \
         fill="#965E5E")
 
+#Output Voltage Range Logic 1
 if(v_heights["Vo max"][1] < v_heights["Voh min"][0]-1):
     canvas_test.create_polygon( \
         (DRAWING_WIDTH/2+4, v_heights["Vo max"][1]), \
@@ -59,6 +63,7 @@ if(v_heights["Vo max"][1] < v_heights["Voh min"][0]-1):
         (DRAWING_WIDTH/2+4, v_heights["Voh min"][0]), \
         fill="#92E483")
 
+#Output Voltage Range Logic 0
 if(v_heights["Vol max"][1] < v_heights["Vo min"][0]-1):
     canvas_test.create_polygon( \
         (DRAWING_WIDTH/2+4, v_heights["Vol max"][1]), \
