@@ -103,6 +103,7 @@ def createVoltageEntry(display_name, default_text="0"):
     return voltage_entry_frame
 
 device_entry_toplevel = Toplevel(master=app, width=200, height=200, bg="gray")
+device_entry_toplevel.geometry("+0+0")
 device_entry_toplevel.resizable(width=False, height=False)
 device_entry_toplevel.protocol("WM_DELETE_WINDOW", quit) # Quit entire program
 
