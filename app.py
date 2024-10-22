@@ -1,20 +1,11 @@
 from tkinter import *
-from device_entry_toplevel import device_entry_toplevel
-from app_common import *
+import device_entry_toplevel
+import app_common
 
-
-
-def drawVoltageChart():
-    pass
-
-
-
-app.geometry("500x500+0+200")
-
-
-            
+app_common.app.geometry("500x500+0+200")
 
 
 
 
-app.mainloop()
+
+app_common.app.mainloop()

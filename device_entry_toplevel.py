@@ -1,5 +1,7 @@
 from tkinter import *
-from app_common import *
+from constants import *
+import app_common
+from canvas_drawing import drawCanvas
 
 ABSOLUTE_SCALE = 0
 VCC_RELATIVE_SCALE = 1
@@ -68,13 +70,22 @@ def addEntryCallback():
             error_string = "Vo max must be <= Vcc(Vo max=" + \
                 str(new_entry["Vo max"]) + ", Vcc=" + str(new_entry["Vcc"]) + ")"
 
-        if(error_string == None):
-            device_entries.append(new_entry)
-            print(device_entries)
-            error_message.grid_forget()
-        else:
+        if(error_string != None):
             error_message.configure(text=error_string)
             error_message.grid(column=0, columnspan=4, row=3, padx=10)
+        else:
+            app_common.device_entries.append(new_entry)
+            print(app_common.device_entries)
+            error_message.grid_forget()
+            new_canvas = Canvas(app_common.app, width=DRAWING_WIDTH_FULL, height=DRAWING_HEIGHT)
+            new_canvas.pack(side=LEFT)
+            entry_max_voltage = drawCanvas(new_canvas, app_common.device_entries[len(app_common.device_entries)-1], IO_BOTH)
+            app_common.canvas_entries.append(new_canvas)
+            if(entry_max_voltage > app_common.all_max_voltage):
+                app_common.all_max_voltage = entry_max_voltage
+                for i in range(len(app_common.device_entries) - 1):
+                    app_common.canvas_entries[i].delete("all")
+                    drawCanvas(app_common.canvas_entries[i], app_common.device_entries[i], IO_BOTH)
 
         
 # -------------------------------
@@ -102,7 +113,7 @@ def createVoltageEntry(display_name, default_text="0"):
     voltage_entry_button.grid(column=1, row=1)
     return voltage_entry_frame
 
-device_entry_toplevel = Toplevel(master=app, width=200, height=200, bg="gray")
+device_entry_toplevel = Toplevel(master=app_common.app, width=200, height=200, bg="gray")
 device_entry_toplevel.geometry("+0+0")
 device_entry_toplevel.resizable(width=False, height=False)
 device_entry_toplevel.protocol("WM_DELETE_WINDOW", quit) # Quit entire program
