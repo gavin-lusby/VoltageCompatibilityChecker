@@ -7,6 +7,8 @@ ABSOLUTE_SCALE = 0
 VCC_RELATIVE_SCALE = 1
 scale_modes = {}
 entry_dict = {}
+io_mode_selection = IO_BOTH
+entry_group = {}
 
 # -------------------------------
 # ---------- CALLBACKS ----------
@@ -25,16 +27,24 @@ def addEntryCallback():
     failed = False
     new_entry = {}
     new_entry["Name"] = entry_dict["Name"].get()
+    new_entry["values"] = {}
+    new_entry["io_mode"] = io_mode_selection
     try:
-        new_entry["Vcc"] = float(entry_dict["Vcc"].get())
+        # No need to keep track of Vcc for IO only inputs
+        if(new_entry["io_mode"] != IO_INPUT_ONLY):
+            new_entry["values"]["Vcc"] = float(entry_dict["Vcc"].get())
         for entry_label in entry_dict:
             if entry_label in ["Name", "Vcc"]:
                 continue
+            # Ignore inputs in output mode and outputs in input mode
+            if(((new_entry["io_mode"] == IO_OUTPUT_ONLY) and (entry_label in ["Vi min", "Vil max", "Vih min", "Vi max"])) or
+               ((new_entry["io_mode"] == IO_INPUT_ONLY) and (entry_label in ["Vo min", "Vol max", "Voh min", "Vo max"]))):
+                continue
             read_value = float(entry_dict[entry_label].get())
             if(scale_modes[entry_label] == ABSOLUTE_SCALE):
-                new_entry[entry_label] = read_value
+                new_entry["values"][entry_label] = read_value
             else:
-                new_entry[entry_label] = read_value*new_entry["Vcc"]
+                new_entry["values"][entry_label] = read_value*new_entry["Vcc"]
 
             
     except ValueError:
@@ -42,33 +52,34 @@ def addEntryCallback():
         error_message.configure(text="Error: All number fields must contain valid numbers")
     if(not failed):
         error_string = None
-        if((new_entry["Vi min"] > new_entry["Vil max"])):
-            error_string = "Vi min must be <= Vil max(Vi min=" + \
-                str(new_entry["Vi min"]) + ", Vil max=" + str(new_entry["Vil max"]) + ")"
-        
-        elif((new_entry["Vil max"] >= new_entry["Vih min"])):
-            error_string = "Vil max must be < Vih min(Vil max=" + \
-                str(new_entry["Vil max"]) + ", Vih min=" + str(new_entry["Vih min"]) + ")"
-        
-        elif((new_entry["Vih min"] > new_entry["Vi max"])):
-            error_string = "Vih min must be <= Vi max(Vih min=" + \
-                str(new_entry["Vih min"]) + ", Vi max=" + str(new_entry["Vi max"]) + ")"
-        
-        elif((new_entry["Vo min"] > new_entry["Vol max"])):
-            error_string = "Vo min must be <= Vol max(Vo min=" + \
-                str(new_entry["Vo min"]) + ", Vol max=" + str(new_entry["Vol max"]) + ")"
-        
-        elif((new_entry["Vol max"] >= new_entry["Voh min"])):
-            error_string = "Vol max must be < Voh min(Vol max=" + \
-                str(new_entry["Vol max"]) + ", Voh min=" + str(new_entry["Voh min"]) + ")"
-        
-        elif((new_entry["Voh min"] > new_entry["Vo max"])):
-            error_string = "Voh min must be <= Vo max(Voh min=" + \
-                str(new_entry["Voh min"]) + ", Vo max=" + str(new_entry["Vo max"]) + ")"
-        
-        elif((new_entry["Vo max"] > new_entry["Vcc"])):
-            error_string = "Vo max must be <= Vcc(Vo max=" + \
-                str(new_entry["Vo max"]) + ", Vcc=" + str(new_entry["Vcc"]) + ")"
+        if(new_entry["io_mode"] != IO_OUTPUT_ONLY):
+            if((new_entry["values"]["Vi min"] > new_entry["values"]["Vil max"])):
+                error_string = "Vi min must be <= Vil max(Vi min=" + \
+                    str(new_entry["values"]["Vi min"]) + ", Vil max=" + str(new_entry["values"]["Vil max"]) + ")"
+            
+            elif((new_entry["values"]["Vil max"] >= new_entry["values"]["Vih min"])):
+                error_string = "Vil max must be < Vih min(Vil max=" + \
+                    str(new_entry["values"]["Vil max"]) + ", Vih min=" + str(new_entry["values"]["Vih min"]) + ")"
+            
+            elif((new_entry["values"]["Vih min"] > new_entry["values"]["Vi max"])):
+                error_string = "Vih min must be <= Vi max(Vih min=" + \
+                    str(new_entry["values"]["Vih min"]) + ", Vi max=" + str(new_entry["values"]["Vi max"]) + ")"
+        if(new_entry["io_mode"] != IO_INPUT_ONLY):
+            if((new_entry["values"]["Vo min"] > new_entry["values"]["Vol max"])):
+                error_string = "Vo min must be <= Vol max(Vo min=" + \
+                    str(new_entry["values"]["Vo min"]) + ", Vol max=" + str(new_entry["values"]["Vol max"]) + ")"
+            
+            elif((new_entry["values"]["Vol max"] >= new_entry["values"]["Voh min"])):
+                error_string = "Vol max must be < Voh min(Vol max=" + \
+                    str(new_entry["values"]["Vol max"]) + ", Voh min=" + str(new_entry["values"]["Voh min"]) + ")"
+            
+            elif((new_entry["values"]["Voh min"] > new_entry["values"]["Vo max"])):
+                error_string = "Voh min must be <= Vo max(Voh min=" + \
+                    str(new_entry["values"]["Voh min"]) + ", Vo max=" + str(new_entry["values"]["Vo max"]) + ")"
+            
+            elif((new_entry["values"]["Vo max"] > new_entry["values"]["Vcc"])):
+                error_string = "Vo max must be <= Vcc(Vo max=" + \
+                    str(new_entry["values"]["Vo max"]) + ", Vcc=" + str(new_entry["values"]["Vcc"]) + ")"
 
         if(error_string != None):
             error_message.configure(text=error_string)
@@ -77,15 +88,47 @@ def addEntryCallback():
             app_common.device_entries.append(new_entry)
             print(app_common.device_entries)
             error_message.grid_forget()
-            new_canvas = Canvas(app_common.app, width=DRAWING_WIDTH_FULL, height=DRAWING_HEIGHT)
+            if(new_entry["io_mode"] == IO_BOTH):
+                canvas_width = DRAWING_WIDTH_FULL
+            else:
+                canvas_width = DRAWING_WIDTH_FULL/2+2
+            new_canvas = Canvas(app_common.app, width=canvas_width, height=DRAWING_HEIGHT, bg="yellow")
             new_canvas.pack(side=LEFT)
-            entry_max_voltage = drawTree(new_canvas, app_common.device_entries[len(app_common.device_entries)-1], IO_BOTH)
+            entry_max_voltage = drawTree(new_canvas, app_common.device_entries[len(app_common.device_entries)-1])
             app_common.voltage_tile_entitites.append(new_canvas)
             if(entry_max_voltage > app_common.all_max_voltage):
                 app_common.all_max_voltage = entry_max_voltage
                 for i in range(len(app_common.device_entries) - 1):
                     app_common.voltage_tile_entitites[i].delete("all")
-                    drawTree(app_common.voltage_tile_entitites[i], app_common.device_entries[i], IO_BOTH)
+                    drawTree(app_common.voltage_tile_entitites[i], app_common.device_entries[i])
+
+def switchIOModeCallback():
+    global io_mode_selection
+    if(io_mode_selection == IO_BOTH):
+        io_button.configure(fg="red", text="IO Mode: Only In")
+        io_mode_selection = IO_INPUT_ONLY
+        entry_group["Vo min"].configure(state="disabled")
+        entry_group["Vol max"].configure(state="disabled")
+        entry_group["Voh min"].configure(state="disabled")
+        entry_group["Vo max"].configure(state="disabled")
+    elif(io_mode_selection == IO_INPUT_ONLY):
+        io_button.configure(fg="green", text="IO Mode: Only Out")
+        io_mode_selection = IO_OUTPUT_ONLY
+        entry_group["Vi min"].configure(state="disabled")
+        entry_group["Vil max"].configure(state="disabled")
+        entry_group["Vih min"].configure(state="disabled")
+        entry_group["Vi max"].configure(state="disabled")
+        entry_group["Vo min"].configure(state="normal")
+        entry_group["Vol max"].configure(state="normal")
+        entry_group["Voh min"].configure(state="normal")
+        entry_group["Vo max"].configure(state="normal")
+    else:
+        io_button.configure(fg="blue", text="IO Mode: In/Out")
+        io_mode_selection = IO_BOTH
+        entry_group["Vi min"].configure(state="normal")
+        entry_group["Vil max"].configure(state="normal")
+        entry_group["Vih min"].configure(state="normal")
+        entry_group["Vi max"].configure(state="normal")
 
         
 # -------------------------------
@@ -102,6 +145,7 @@ def createEntryWrapper(display_name, default_text=""):
     entry_label.grid(column=0, columnspan=2, row=0, sticky="we")
     entry_field.grid(column=0, row=1, sticky="we")
     entry_stringvar.set(default_text)
+    entry_group[display_name] = entry_field
     return entry_frame
 
 def createVoltageEntry(display_name, default_text="0"):
@@ -133,12 +177,13 @@ Vo_max_entry=createVoltageEntry("Vo max", "5")
 
 name_entry= createEntryWrapper("Name")
 Vcc_entry=createEntryWrapper("Vcc", "5")
-
+io_button = Button(device_entry_toplevel, fg="blue", text="IO Mode: In/Out", width=20, height=2, command=switchIOModeCallback)
 add_button = Button(device_entry_toplevel, fg="blue", text="Add Device", width=20, height=2, command=addEntryCallback)
 error_message = Label(device_entry_toplevel, fg="#5c0000", bg="#997474", justify=LEFT, width=70)
 
-name_entry.grid(column=0, columnspan=2, row=0, padx=(10,5), pady=(10,0), sticky="w")
-Vcc_entry.grid(column=2, row=0, padx=(15,5), pady=(10, 0))
+name_entry.grid(column=0, row=0, padx=(10,5), pady=(10,0), sticky="w")
+Vcc_entry.grid(column=1, row=0, padx=(15,5), pady=(10, 0))
+io_button.grid(column=2, row=0, padx=(5,10), pady=(10, 0))
 add_button.grid(column=3, row=0, padx=(5,10), pady=(10, 0))
 
 Vi_min_entry.grid(column=0, row=1, padx=(10,5), pady=(10, 0))
