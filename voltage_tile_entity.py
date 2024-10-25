@@ -1,14 +1,11 @@
 from tkinter import *
 from constants import *
 import app_common
- 
 
 
 
 
-
-
-def drawCanvas(drawing_canvas, device_entry, io_mode):
+def drawTree(drawing_canvas, device_entry, io_mode):
 
     if(io_mode == IO_INPUT_ONLY):
         max_voltage = device_entry["Vi max"]

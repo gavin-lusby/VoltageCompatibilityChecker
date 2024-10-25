@@ -1,7 +1,7 @@
 from tkinter import *
 from constants import *
 import app_common
-from canvas_drawing import drawCanvas
+from voltage_tile_entity import drawTree
 
 ABSOLUTE_SCALE = 0
 VCC_RELATIVE_SCALE = 1
@@ -79,13 +79,13 @@ def addEntryCallback():
             error_message.grid_forget()
             new_canvas = Canvas(app_common.app, width=DRAWING_WIDTH_FULL, height=DRAWING_HEIGHT)
             new_canvas.pack(side=LEFT)
-            entry_max_voltage = drawCanvas(new_canvas, app_common.device_entries[len(app_common.device_entries)-1], IO_BOTH)
-            app_common.canvas_entries.append(new_canvas)
+            entry_max_voltage = drawTree(new_canvas, app_common.device_entries[len(app_common.device_entries)-1], IO_BOTH)
+            app_common.voltage_tile_entitites.append(new_canvas)
             if(entry_max_voltage > app_common.all_max_voltage):
                 app_common.all_max_voltage = entry_max_voltage
                 for i in range(len(app_common.device_entries) - 1):
-                    app_common.canvas_entries[i].delete("all")
-                    drawCanvas(app_common.canvas_entries[i], app_common.device_entries[i], IO_BOTH)
+                    app_common.voltage_tile_entitites[i].delete("all")
+                    drawTree(app_common.voltage_tile_entitites[i], app_common.device_entries[i], IO_BOTH)
 
         
 # -------------------------------
