@@ -3,7 +3,7 @@ from constants import *
 import app_common
 
 
-def drawTree(drawing_canvas, device_entry):
+def drawTree(device_entry):
 
     if(device_entry["io_mode"] == IO_INPUT_ONLY):
         max_voltage = device_entry["values"]["Vi max"]
@@ -17,12 +17,18 @@ def drawTree(drawing_canvas, device_entry):
         scale = (DRAWING_HEIGHT-1) / app_common.all_max_voltage
     else:
         scale = (DRAWING_HEIGHT-1) / max_voltage
-
+    
     # Draw tree stem
     if((device_entry["io_mode"] == IO_BOTH) or (device_entry["io_mode"] == IO_INPUT_ONLY)):
-        drawing_canvas.create_polygon((DRAWING_WIDTH_FULL/2, 2), (DRAWING_WIDTH_FULL/2+4, 2), (DRAWING_WIDTH_FULL/2+4, DRAWING_HEIGHT+2), (DRAWING_WIDTH_FULL/2, DRAWING_HEIGHT+2))
+        device_entry["canvas"].create_rectangle( \
+            (DRAWING_WIDTH_FULL/2, 2), \
+            (DRAWING_WIDTH_FULL/2+4, DRAWING_HEIGHT+2), \
+            fill="#000000", width=0) #Color & border width
     else:
-        drawing_canvas.create_polygon((2, 2), (6, 2), (6, DRAWING_HEIGHT+2), (2, DRAWING_HEIGHT+2))
+        device_entry["canvas"].create_rectangle(
+            (2, 2), \
+            (6, DRAWING_HEIGHT+2), \
+            fill="#000000", width=0)
     v_heights={}
 
     for voltage_entry in device_entry["values"]:
@@ -34,66 +40,63 @@ def drawTree(drawing_canvas, device_entry):
         print(voltage_entry, ": ", v_heights[voltage_entry]) #TODO remove
         if(((voltage_entry == "Vcc") or voltage_entry[0:2]=="Vo")):
             if(device_entry["io_mode"] == IO_BOTH):
-                drawing_canvas.create_polygon((DRAWING_WIDTH_FULL/2+4, branch_top), (DRAWING_WIDTH_FULL+2, branch_top), (DRAWING_WIDTH_FULL+2, branch_bottom), (DRAWING_WIDTH_FULL/2+4, branch_bottom))
+                device_entry["canvas"].create_rectangle( \
+                    (DRAWING_WIDTH_FULL/2+4, branch_top), \
+                    (DRAWING_WIDTH_FULL+2, branch_bottom), \
+                    fill="#000000", width=0)
             else:
-                drawing_canvas.create_polygon((6, branch_top), (DRAWING_WIDTH_FULL/2+4, branch_top), (DRAWING_WIDTH_FULL/2+4, branch_bottom), (6, branch_bottom))
+                device_entry["canvas"].create_rectangle( \
+                    (6, branch_top), \
+                    (DRAWING_WIDTH_FULL/2+4, branch_bottom), \
+                    fill="#000000", width=0)
         else: #Vi side
-            drawing_canvas.create_polygon((2, branch_top), (DRAWING_WIDTH_FULL/2, branch_top), (DRAWING_WIDTH_FULL/2, branch_bottom), (2, branch_bottom))
+            device_entry["canvas"].create_rectangle( \
+                (2, branch_top), \
+                (DRAWING_WIDTH_FULL/2, branch_bottom), \
+                fill="#000000", width=0)
 
     if(device_entry["io_mode"] != IO_OUTPUT_ONLY):
         # Acceptable Voltage In Logic 1
         if(v_heights["Vi max"][1] < v_heights["Vih min"][0]):
-            drawing_canvas.create_polygon( \
+            device_entry["canvas"].create_rectangle( \
                 (2, v_heights["Vi max"][1]), \
-                (DRAWING_WIDTH_FULL/2, v_heights["Vi max"][1]), \
                 (DRAWING_WIDTH_FULL/2, v_heights["Vih min"][0]), \
-                (2, v_heights["Vih min"][0]), \
-                fill="#78B65E")
+                fill="#78B65E", width=0)
 
         #Acceptable Voltage In Logic 0
         if(v_heights["Vil max"][1] < v_heights["Vi min"][0]):
-            drawing_canvas.create_polygon( \
+            device_entry["canvas"].create_rectangle( \
                 (2, v_heights["Vil max"][1]), \
-                (DRAWING_WIDTH_FULL/2, v_heights["Vil max"][1]), \
                 (DRAWING_WIDTH_FULL/2, v_heights["Vi min"][0]), \
-                (2, v_heights["Vi min"][0]), \
-                fill="#965E5E")
+                fill="#965E5E", width=0)
 
     if(device_entry["io_mode"] == IO_BOTH):
         #Output Voltage Range Logic 1
         if(v_heights["Vo max"][1] < v_heights["Voh min"][0]):
-            drawing_canvas.create_polygon( \
+            device_entry["canvas"].create_rectangle( \
                 (DRAWING_WIDTH_FULL/2+4, v_heights["Vo max"][1]), \
-                (DRAWING_WIDTH_FULL+2, v_heights["Vo max"][1]), \
                 (DRAWING_WIDTH_FULL+2, v_heights["Voh min"][0]), \
-                (DRAWING_WIDTH_FULL/2+4, v_heights["Voh min"][0]), \
-                fill="#92E483")
+                fill="#92E483", width=0)
 
         #Output Voltage Range Logic 0
         if(v_heights["Vol max"][1] < v_heights["Vo min"][0]):
-            drawing_canvas.create_polygon( \
+            device_entry["canvas"].create_rectangle( \
                 (DRAWING_WIDTH_FULL/2+4, v_heights["Vol max"][1]), \
-                (DRAWING_WIDTH_FULL+2, v_heights["Vol max"][1]), \
                 (DRAWING_WIDTH_FULL+2, v_heights["Vo min"][0]), \
-                (DRAWING_WIDTH_FULL/2+4, v_heights["Vo min"][0]), \
-                fill="#F95E5E")
+                fill="#F95E5E", width=0)
     if(device_entry["io_mode"] == IO_OUTPUT_ONLY):
         #Output Voltage Range Logic 1
         if(v_heights["Vo max"][1] < v_heights["Voh min"][0]):
-            drawing_canvas.create_polygon( \
+            device_entry["canvas"].create_rectangle( \
                 (6, v_heights["Vo max"][1]), \
-                (DRAWING_WIDTH_FULL/2+4, v_heights["Vo max"][1]), \
                 (DRAWING_WIDTH_FULL/2+4, v_heights["Voh min"][0]), \
-                (6, v_heights["Voh min"][0]), \
-                fill="#92E483")
+                fill="#92E483", width=0)
 
         #Output Voltage Range Logic 0
         if(v_heights["Vol max"][1] < v_heights["Vo min"][0]):
-            drawing_canvas.create_polygon( \
+            device_entry["canvas"].create_rectangle( \
                 (6, v_heights["Vol max"][1]), \
-                (DRAWING_WIDTH_FULL/2+4, v_heights["Vol max"][1]), \
                 (DRAWING_WIDTH_FULL/2+4, v_heights["Vo min"][0]), \
-                (6, v_heights["Vo min"][0]), \
-                fill="#F95E5E")
+                fill="#F95E5E", width=0)
     # To see if we need to redraw other canvases
     return max_voltage

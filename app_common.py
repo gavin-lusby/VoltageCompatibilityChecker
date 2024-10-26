@@ -1,7 +1,6 @@
 from tkinter import *
 
-device_entries=[]
-voltage_tile_entitites=[]
+device_entries={}
 all_max_voltage = 0
 
 app = Tk()
