@@ -98,21 +98,17 @@ def addEntryCallback():
             failed = True
         else:
             error_message.grid_forget()
-            if(new_entry["io_mode"] == IO_BOTH):
-                canvas_width = DRAWING_WIDTH_FULL
-            else:
-                canvas_width = DRAWING_WIDTH_FULL/2+2
-            new_canvas = Canvas(app_common.app, width=canvas_width, height=DRAWING_HEIGHT)
+            new_canvas = Canvas(app_common.app, width=DRAWING_WIDTH, height=DRAWING_HEIGHT)
             new_entry["canvas"] = new_canvas
             app_common.device_entries[new_entry_name] = new_entry
-            entry_max_voltage = drawTree(app_common.device_entries[new_entry_name])
+            entry_max_voltage = drawTree(app_common.device_entries[new_entry_name], 2, 2)
             if(entry_max_voltage > app_common.all_max_voltage):
                 app_common.all_max_voltage = entry_max_voltage
                 for entry_name in app_common.device_entries:
                     if(entry_name == new_entry_name):
                         continue
                     app_common.device_entries[entry_name]["canvas"].delete("all") #Clear old canvas
-                    drawTree(app_common.device_entries[entry_name])
+                    drawTree(app_common.device_entries[entry_name], 2, 2)
             
             #----------------------
             new_canvas.pack(side=LEFT)
