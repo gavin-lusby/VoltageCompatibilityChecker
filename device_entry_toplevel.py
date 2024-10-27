@@ -10,6 +10,9 @@ entry_dict = {}
 io_mode_selection = IO_BOTH
 entry_group = {}
 
+error_message = None # Label for error message
+io_button = None # Button to change IO mode
+
 # -------------------------------
 # ---------- CALLBACKS ----------
 # -------------------------------
@@ -94,19 +97,15 @@ def addEntryCallback():
         if(error_string != None):
             failed = True
         else:
-            print(app_common.device_entries)
             error_message.grid_forget()
             if(new_entry["io_mode"] == IO_BOTH):
                 canvas_width = DRAWING_WIDTH_FULL
             else:
                 canvas_width = DRAWING_WIDTH_FULL/2+2
-            #----------------------
-            new_canvas = Canvas(app_common.app, width=canvas_width, height=DRAWING_HEIGHT, bg="yellow")
-            new_canvas.pack(side=LEFT)
+            new_canvas = Canvas(app_common.app, width=canvas_width, height=DRAWING_HEIGHT)
             new_entry["canvas"] = new_canvas
             app_common.device_entries[new_entry_name] = new_entry
             entry_max_voltage = drawTree(app_common.device_entries[new_entry_name])
-            print(app_common.device_entries) #diagnostic #TODO remove
             if(entry_max_voltage > app_common.all_max_voltage):
                 app_common.all_max_voltage = entry_max_voltage
                 for entry_name in app_common.device_entries:
@@ -114,6 +113,9 @@ def addEntryCallback():
                         continue
                     app_common.device_entries[entry_name]["canvas"].delete("all") #Clear old canvas
                     drawTree(app_common.device_entries[entry_name])
+            
+            #----------------------
+            new_canvas.pack(side=LEFT)
             #---------------------------
 
     if(failed):
@@ -153,9 +155,9 @@ def switchIOModeCallback():
 # ---------- WRAPPERS -----------
 # -------------------------------
 
-def createEntryWrapper(display_name, default_text=""):
+def createEntryWrapper(wrapper_master, display_name, default_text=""):
     entry_stringvar = StringVar()
-    entry_frame = Frame(master=device_entry_toplevel, bg="gray")
+    entry_frame = Frame(master=wrapper_master, bg="gray")
     entry_field = Entry(entry_frame, fg="gray", textvariable=entry_stringvar)
     entry_label = Label(entry_frame, text=display_name, bg="gray")
     entry_dict[display_name] = entry_stringvar
@@ -166,52 +168,60 @@ def createEntryWrapper(display_name, default_text=""):
     entry_group[display_name] = entry_field
     return entry_frame
 
-def createVoltageEntry(display_name, default_text="0"):
+def createVoltageEntry(wrapper_master, display_name, default_text="0"):
     scale_modes[display_name] = ABSOLUTE_SCALE
-    voltage_entry_frame = createEntryWrapper(display_name, default_text)
+    voltage_entry_frame = createEntryWrapper(wrapper_master, display_name, default_text)
     voltage_entry_button = Button(voltage_entry_frame, fg="green", text="V", width=4)
     callback = lambda : vccEntryCallback(voltage_entry_button, display_name)
     voltage_entry_button.configure(command=callback)
     voltage_entry_button.grid(column=1, row=1)
     return voltage_entry_frame
 
-device_entry_toplevel = Toplevel(master=app_common.app, width=200, height=200, bg="gray")
-device_entry_toplevel.geometry("+0+0")
-device_entry_toplevel.resizable(width=False, height=False)
-device_entry_toplevel.protocol("WM_DELETE_WINDOW", quit) # Quit entire program
+# -------------------------------
+# ------------ OTHER ------------ Rename this??
+# -------------------------------
 
-Vi_min_entry=createVoltageEntry("Vi min", "0")
-Vil_max_entry=createVoltageEntry("Vil max", "0.8")
+def createDeviceEntryTopLevel():
+    global error_message
+    global io_button
 
-Vih_min_entry=createVoltageEntry("Vih min", "2")
-Vi_max_entry=createVoltageEntry("Vi max", "5")
+    device_entry_toplevel = Toplevel(master=app_common.app, width=200, height=200, bg="gray")
+    device_entry_toplevel.geometry("+0+0")
+    device_entry_toplevel.resizable(width=False, height=False)
+    device_entry_toplevel.protocol("WM_DELETE_WINDOW", quit) # Quit entire program
+
+    Vi_min_entry=createVoltageEntry(device_entry_toplevel, "Vi min", "0")
+    Vil_max_entry=createVoltageEntry(device_entry_toplevel, "Vil max", "0.8")
+
+    Vih_min_entry=createVoltageEntry(device_entry_toplevel, "Vih min", "2")
+    Vi_max_entry=createVoltageEntry(device_entry_toplevel, "Vi max", "5")
 
 
-Vo_min_entry=createVoltageEntry("Vo min", "0")
-Vol_max_entry=createVoltageEntry("Vol max", "0.4")
+    Vo_min_entry=createVoltageEntry(device_entry_toplevel, "Vo min", "0")
+    Vol_max_entry=createVoltageEntry(device_entry_toplevel, "Vol max", "0.4")
 
-Voh_min_entry=createVoltageEntry("Voh min", "2.4")
-Vo_max_entry=createVoltageEntry("Vo max", "5")
+    Voh_min_entry=createVoltageEntry(device_entry_toplevel, "Voh min", "2.4")
+    Vo_max_entry=createVoltageEntry(device_entry_toplevel, "Vo max", "5")
 
-name_entry= createEntryWrapper("Name")
-Vcc_entry=createEntryWrapper("Vcc", "5")
-io_button = Button(device_entry_toplevel, fg="blue", text="IO Mode: In/Out", width=20, height=2, command=switchIOModeCallback)
-add_button = Button(device_entry_toplevel, fg="blue", text="Add Device", width=20, height=2, command=addEntryCallback)
-error_message = Label(device_entry_toplevel, fg="#5c0000", bg="#997474", justify=LEFT, width=70)
+    name_entry= createEntryWrapper(device_entry_toplevel, "Name", "Default Device")
+    Vcc_entry=createEntryWrapper(device_entry_toplevel, "Vcc", "5")
+    io_button = Button(device_entry_toplevel, fg="blue", text="IO Mode: In/Out", width=20, height=2, command=switchIOModeCallback)
+    add_button = Button(device_entry_toplevel, fg="blue", text="Add Device", width=20, height=2, command=addEntryCallback)
+    error_message = Label(device_entry_toplevel, fg="#5c0000", bg="#997474", justify=LEFT, width=70)
 
-name_entry.grid(column=0, row=0, padx=(10,5), pady=(10,0), sticky="w")
-Vcc_entry.grid(column=1, row=0, padx=(15,5), pady=(10, 0))
-io_button.grid(column=2, row=0, padx=(5,10), pady=(10, 0))
-add_button.grid(column=3, row=0, padx=(5,10), pady=(10, 0))
+    name_entry.grid(column=0, row=0, padx=(10,5), pady=(10,0), sticky="w")
+    Vcc_entry.grid(column=1, row=0, padx=(15,5), pady=(10, 0))
+    io_button.grid(column=2, row=0, padx=(5,10), pady=(10, 0))
+    add_button.grid(column=3, row=0, padx=(5,10), pady=(10, 0))
 
-Vi_min_entry.grid(column=0, row=1, padx=(10,5), pady=(10, 0))
-Vil_max_entry.grid(column=1, row=1, padx=(5,15), pady=(10, 0))
+    Vi_min_entry.grid(column=0, row=1, padx=(10,5), pady=(10, 0))
+    Vil_max_entry.grid(column=1, row=1, padx=(5,15), pady=(10, 0))
 
-Vih_min_entry.grid(column=0, row=2, padx=(10,5), pady=(0, 10))
-Vi_max_entry.grid(column=1, row=2, padx=(5,15), pady=(0, 10))
+    Vih_min_entry.grid(column=0, row=2, padx=(10,5), pady=(0, 10))
+    Vi_max_entry.grid(column=1, row=2, padx=(5,15), pady=(0, 10))
 
-Vo_min_entry.grid(column=2, row=1, padx=(15,5), pady=(10, 0))
-Vol_max_entry.grid(column=3, row=1, padx=(5,10), pady=(10, 0))
+    Vo_min_entry.grid(column=2, row=1, padx=(15,5), pady=(10, 0))
+    Vol_max_entry.grid(column=3, row=1, padx=(5,10), pady=(10, 0))
 
-Voh_min_entry.grid(column=2, row=2, padx=(15,5), pady=(0, 10))
-Vo_max_entry.grid(column=3, row=2, padx=(5,10), pady=(0, 10))
+    Voh_min_entry.grid(column=2, row=2, padx=(15,5), pady=(0, 10))
+    Vo_max_entry.grid(column=3, row=2, padx=(5,10), pady=(0, 10))

@@ -2,6 +2,9 @@ from tkinter import *
 from constants import *
 import app_common
 
+# -------------------------------
+# ---------- CALLBACKS ----------
+# -------------------------------
 
 def drawTree(device_entry):
 
@@ -37,7 +40,6 @@ def drawTree(device_entry):
         branch_top = DRAWING_HEIGHT-min(pixel_height+1, (DRAWING_HEIGHT-1))+1
         branch_bottom = DRAWING_HEIGHT-max(pixel_height-1, 0)+2
         v_heights[voltage_entry] = (branch_top, branch_bottom)
-        print(voltage_entry, ": ", v_heights[voltage_entry]) #TODO remove
         if(((voltage_entry == "Vcc") or voltage_entry[0:2]=="Vo")):
             if(device_entry["io_mode"] == IO_BOTH):
                 device_entry["canvas"].create_rectangle( \
@@ -100,3 +102,20 @@ def drawTree(device_entry):
                 fill="#F95E5E", width=0)
     # To see if we need to redraw other canvases
     return max_voltage
+
+# -------------------------------
+# ---------- WRAPPERS -----------
+# -------------------------------
+
+# def createVoltageTile():
+#     entry_stringvar = StringVar()
+#     entry_frame = Frame(master=device_entry_toplevel, bg="gray")
+#     entry_field = Entry(entry_frame, fg="gray", textvariable=entry_stringvar)
+#     entry_label = Label(entry_frame, text=display_name, bg="gray")
+#     entry_dict[display_name] = entry_stringvar
+    
+#     entry_label.grid(column=0, columnspan=2, row=0, sticky="we")
+#     entry_field.grid(column=0, row=1, sticky="we")
+#     entry_stringvar.set(default_text)
+#     entry_group[display_name] = entry_field
+#     return entry_frame
