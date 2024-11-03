@@ -1,42 +1,76 @@
 from tkinter import *
+from tkinter import ttk
 from constants import *
 import app_common
+
+tile_frame = Frame(master=app_common.app)
+tile_canvas = Canvas(master=tile_frame, width=DRAWING_WIDTH*2.5, height=DRAWING_HEIGHT, bg=APP_BG_COLOR)
 
 # -------------------------------
 # ---------- CALLBACKS ----------
 # -------------------------------
 
-def drawTree(device_entry, start_x, start_y):
+def updateSelector(event=None):
+    redrawCanvas(app_common.input_selector.get(), app_common.output_selector.get())
+
+def redrawCanvas(device_input_name, device_output_name):
+
+    if(device_input_name != ""):
+        device_entry_input = app_common.device_entries[device_input_name]
+    if(device_output_name != ""):
+        device_entry_output = app_common.device_entries[device_output_name]
+
+    max_voltage_in = 0
+    max_voltage_out = 0
+
+    if(device_input_name != ""):
+        if(device_entry_input["io_mode"] == IO_INPUT_ONLY):
+            max_voltage_in = device_entry_input["values"]["Vi max"]
+        elif(device_entry_input["io_mode"] == IO_OUTPUT_ONLY):
+            max_voltage_in = device_entry_input["values"]["Vcc"]
+        else:
+            max_voltage_in = max(device_entry_input["values"]["Vcc"], device_entry_input["values"]["Vi max"])
+
+    if(device_output_name != ""):
+        if(device_entry_output["io_mode"] == IO_INPUT_ONLY):
+            max_voltage_out = device_entry_output["values"]["Vi max"]
+        elif(device_entry_output["io_mode"] == IO_OUTPUT_ONLY):
+            max_voltage_out = device_entry_output["values"]["Vcc"]
+        else:
+            max_voltage_out = max(device_entry_output["values"]["Vcc"], device_entry_output["values"]["Vi max"])
+    
+    max_voltage = max(max_voltage_in, max_voltage_out)
+
+    if(device_output_name != ""):
+        drawTree(device_entry_output, 2, 2, max_voltage)
+    if(device_input_name != ""):
+        drawTree(device_entry_input, int(DRAWING_WIDTH*1.5+2), 2, max_voltage)
+
+def drawTree(device_entry, start_x, start_y, max_voltage):
 
     v_heights={}
 
-    if(device_entry["io_mode"] == IO_INPUT_ONLY):
-        max_voltage = device_entry["values"]["Vi max"]
-    elif(device_entry["io_mode"] == IO_OUTPUT_ONLY):
-        max_voltage = device_entry["values"]["Vcc"]
-    else:
-        max_voltage = max(device_entry["values"]["Vcc"], device_entry["values"]["Vi max"])
+    # How much to scale drawing by based on max_voltage(ie what the top of drawing should be)
+    scale = (DRAWING_HEIGHT-1) / max_voltage
 
-    # If this voltage > all_max_voltage, use this one, then update all_max_voltage outside func
-    if(app_common.all_max_voltage > max_voltage): 
-        scale = (DRAWING_HEIGHT-1) / app_common.all_max_voltage
-    else:
-        scale = (DRAWING_HEIGHT-1) / max_voltage
-
+    tile_canvas.create_rectangle( \
+        (start_x, start_y), \
+        (start_x + DRAWING_WIDTH, start_y + DRAWING_HEIGHT), \
+        fill=APP_BG_COLOR, width=0)
     # Draw tree stem
-    device_entry["canvas"].create_rectangle( \
+    tile_canvas.create_rectangle( \
         (start_x + DRAWING_WIDTH/2-2, start_y), \
         (start_x + DRAWING_WIDTH/2+2, start_y + DRAWING_HEIGHT), \
         fill="#000000", width=0) #Color & border width
     
     # Draw greyed out region
     if(device_entry["io_mode"] == IO_INPUT_ONLY):
-        device_entry["canvas"].create_rectangle( \
+        tile_canvas.create_rectangle( \
             (start_x + DRAWING_WIDTH/2+2, start_y), \
             (start_x + DRAWING_WIDTH, start_y + DRAWING_HEIGHT), \
             fill="#CCCCCC", width=0)
     elif(device_entry["io_mode"] == IO_OUTPUT_ONLY):
-        device_entry["canvas"].create_rectangle( \
+        tile_canvas.create_rectangle( \
             (start_x, start_y), \
             (start_x + DRAWING_WIDTH/2-2, start_y + DRAWING_HEIGHT), \
             fill="#CCCCCC", width=0)
@@ -55,13 +89,13 @@ def drawTree(device_entry, start_x, start_y):
         v_heights[voltage_entry] = (branch_top, branch_bottom)
         if(((voltage_entry == "Vcc") or voltage_entry[0:2]=="Vo")):
             #Output side
-            device_entry["canvas"].create_rectangle( \
+            tile_canvas.create_rectangle( \
                 (start_x + DRAWING_WIDTH/2+2, branch_top), \
                 (start_x + DRAWING_WIDTH, branch_bottom), \
                 fill="#000000", width=0)
         else:
             #Input side
-            device_entry["canvas"].create_rectangle( \
+            tile_canvas.create_rectangle( \
                 (start_x, branch_top), \
                 (start_x + DRAWING_WIDTH/2 - 2, branch_bottom), \
                 fill="#000000", width=0)
@@ -71,14 +105,14 @@ def drawTree(device_entry, start_x, start_y):
     if(device_entry["io_mode"] in [IO_BOTH, IO_INPUT_ONLY]):
         # Acceptable Voltage In Logic 1
         if(v_heights["Vi max"][1] < v_heights["Vih min"][0]):
-            device_entry["canvas"].create_rectangle( \
+            tile_canvas.create_rectangle( \
                 (start_x, v_heights["Vi max"][1]), \
                 (start_x + DRAWING_WIDTH/2 - 2, v_heights["Vih min"][0]), \
                 fill="#37AFFF", width=0)
 
         #Acceptable Voltage In Logic 0
         if(v_heights["Vil max"][1] < v_heights["Vi min"][0]):
-            device_entry["canvas"].create_rectangle( \
+            tile_canvas.create_rectangle( \
                 (start_x, v_heights["Vil max"][1]), \
                 (start_x + DRAWING_WIDTH/2 - 2, v_heights["Vi min"][0]), \
                 fill="#3737FF", width=0)
@@ -86,14 +120,14 @@ def drawTree(device_entry, start_x, start_y):
     if(device_entry["io_mode"] in [IO_BOTH, IO_OUTPUT_ONLY]):
         # Output Voltage Range Logic 1
         if(v_heights["Vo max"][1] < v_heights["Voh min"][0]):
-            device_entry["canvas"].create_rectangle( \
+            tile_canvas.create_rectangle( \
                 (start_x + DRAWING_WIDTH/2+2, v_heights["Vo max"][1]), \
                 (start_x + DRAWING_WIDTH, v_heights["Voh min"][0]), \
                 fill="#37AFFF", width=0)
 
         # Output Voltage Range Logic 0
         if(v_heights["Vol max"][1] < v_heights["Vo min"][0]):
-            device_entry["canvas"].create_rectangle( \
+            tile_canvas.create_rectangle( \
                 (start_x + DRAWING_WIDTH/2+2, v_heights["Vol max"][1]), \
                 (start_x + DRAWING_WIDTH, v_heights["Vo min"][0]), \
                 fill="#3737FF", width=0)
@@ -105,17 +139,17 @@ def drawTree(device_entry, start_x, start_y):
 # ---------- WRAPPERS -----------
 # -------------------------------
 
-# def createVoltageTile():
-#     tile_frame = Frame(master=app_common.app)
-#     tile_label = Label(entry_frame)
-#     entry_stringvar = StringVar()
-#     entry_frame = Frame(master=device_entry_toplevel, bg="gray")
-#     entry_field = Entry(entry_frame, fg="gray", textvariable=entry_stringvar)
-#     entry_label = Label(entry_frame, text=display_name, bg="gray")
-#     entry_dict[display_name] = entry_stringvar
-    
-#     entry_label.grid(column=0, columnspan=2, row=0, sticky="we")
-#     entry_field.grid(column=0, row=1, sticky="we")
-#     entry_stringvar.set(default_text)
-#     entry_group[display_name] = entry_field
-#     return tile_frame
+def spawnVoltageTile():
+    tile_canvas.grid(column=0, row=0, columnspan=2)
+
+    Label(tile_frame, text="Output Device").grid(column=0,row=1)
+    Label(tile_frame, text="Input Device").grid(column=1,row=1)
+
+    app_common.output_selector = ttk.Combobox(tile_frame, value=[])
+    app_common.input_selector = ttk.Combobox(tile_frame, value=[])
+    app_common.output_selector.bind("<<ComboboxSelected>>", updateSelector)
+    app_common.input_selector.bind("<<ComboboxSelected>>", updateSelector)
+    app_common.output_selector.grid(column=0,row=2)
+    app_common.input_selector.grid(column=1, row=2)
+    tile_frame.pack()
+    return tile_frame

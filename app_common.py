@@ -1,6 +1,9 @@
 from tkinter import Tk
 
 device_entries={}
-all_max_voltage = 0
+input_device_options=[]
+output_device_options=[]
+input_selector = None
+output_selector = None
 
 app = Tk()

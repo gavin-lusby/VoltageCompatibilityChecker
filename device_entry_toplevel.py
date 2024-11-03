@@ -1,7 +1,7 @@
 from tkinter import *
 from constants import *
 import app_common
-from voltage_tile_entity import drawTree
+from voltage_tile_entity import redrawCanvas
 
 ABSOLUTE_SCALE = 0
 VCC_RELATIVE_SCALE = 1
@@ -98,21 +98,21 @@ def addEntryCallback():
             failed = True
         else:
             error_message.grid_forget()
-            new_canvas = Canvas(app_common.app, width=DRAWING_WIDTH, height=DRAWING_HEIGHT)
-            new_entry["canvas"] = new_canvas
             app_common.device_entries[new_entry_name] = new_entry
-            entry_max_voltage = drawTree(app_common.device_entries[new_entry_name], 2, 2)
-            if(entry_max_voltage > app_common.all_max_voltage):
-                app_common.all_max_voltage = entry_max_voltage
-                for entry_name in app_common.device_entries:
-                    if(entry_name == new_entry_name):
-                        continue
-                    app_common.device_entries[entry_name]["canvas"].delete("all") #Clear old canvas
-                    drawTree(app_common.device_entries[entry_name], 2, 2)
-            
-            #----------------------
-            new_canvas.pack(side=LEFT)
-            #---------------------------
+
+            if(new_entry["io_mode"] in [IO_BOTH, IO_INPUT_ONLY]):
+                app_common.input_device_options.append(new_entry_name)
+                app_common.input_selector.configure(value=app_common.input_device_options)
+                if(app_common.input_selector.get() == ""):
+                    app_common.input_selector.set(new_entry_name)
+                    redrawCanvas(new_entry_name, app_common.output_selector.get())
+
+            if(new_entry["io_mode"] in [IO_BOTH, IO_OUTPUT_ONLY]):
+                app_common.output_device_options.append(new_entry_name)
+                app_common.output_selector.configure(value=app_common.output_device_options)
+                if(app_common.output_selector.get() == ""):
+                    app_common.output_selector.set(new_entry_name)
+                    redrawCanvas(app_common.input_selector.get(), new_entry_name)
 
     if(failed):
         error_message.configure(text=f"Error: {error_string}")
@@ -177,7 +177,7 @@ def createVoltageEntry(wrapper_master, display_name, default_text="0"):
 # ------------ OTHER ------------ Rename this??
 # -------------------------------
 
-def createDeviceEntryTopLevel():
+def spawnDeviceEntryTopLevel():
     global error_message
     global io_button
 
