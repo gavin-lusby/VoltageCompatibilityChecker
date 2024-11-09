@@ -5,7 +5,7 @@ from voltage_tile_entity import redrawCanvas
 
 ABSOLUTE_SCALE = 0
 VCC_RELATIVE_SCALE = 1
-scale_modes = {}
+scale_modes = {}#todo remove
 entry_dict = {}
 io_mode_selection = IO_BOTH
 entry_group = {}
@@ -13,18 +13,10 @@ entry_group = {}
 error_message = None # Label for error message
 io_button = None # Button to change IO mode
 
+
 # -------------------------------
 # ---------- CALLBACKS ----------
 # -------------------------------
-
-def vccEntryCallback(voltage_entry_button, display_name):
-    if(scale_modes[display_name] == ABSOLUTE_SCALE):
-        scale_modes[display_name] = VCC_RELATIVE_SCALE
-        voltage_entry_button.configure(text="×Vcc")
-
-    else:
-        scale_modes[display_name] = ABSOLUTE_SCALE
-        voltage_entry_button.configure(text="V")
 
 def addEntryCallback():
     failed = False
@@ -164,13 +156,21 @@ def createEntryWrapper(wrapper_master, display_name, default_text=""):
     entry_group[display_name] = entry_field
     return entry_frame
 
-def createVoltageEntry(wrapper_master, display_name, default_text="0"):
-    scale_modes[display_name] = ABSOLUTE_SCALE
-    voltage_entry_frame = createEntryWrapper(wrapper_master, display_name, default_text)
-    voltage_entry_button = Button(voltage_entry_frame, fg="green", text="V", width=4)
-    callback = lambda : vccEntryCallback(voltage_entry_button, display_name)
-    voltage_entry_button.configure(command=callback)
-    voltage_entry_button.grid(column=1, row=1)
+def createVoltageEntry(wrapper_master, display_name, default_relative_v="0", default_abs_v="0"):
+    relative_v_stringvar = StringVar()
+    absolute_v_stringvar = StringVar()
+    voltage_entry_frame = Frame(master=wrapper_master, bg="gray")
+    entry_field_rel = Entry(voltage_entry_frame, fg="gray", textvariable=relative_v_stringvar, width=5)
+    entry_field_abs = Entry(voltage_entry_frame, fg="gray", textvariable=absolute_v_stringvar, width=5)
+    vcc_label = Label(voltage_entry_frame, text="×Vcc +", bg="gray")
+    v_label = Label(voltage_entry_frame, text="V", bg="gray")
+    entry_label = Label(voltage_entry_frame, text=display_name, bg="gray")
+    entry_dict[display_name] = (relative_v_stringvar, absolute_v_stringvar)
+    entry_label.grid(column=0, columnspan=4, row=0, sticky="we")
+    entry_field_rel.grid(column=0, row=1, sticky="we")
+    vcc_label.grid(column=1, row=1)
+    entry_field_abs.grid(column=2, row=1)
+    v_label.grid(column=3, row=1)
     return voltage_entry_frame
 
 # -------------------------------
@@ -186,18 +186,18 @@ def spawnDeviceEntryTopLevel():
     device_entry_toplevel.resizable(width=False, height=False)
     device_entry_toplevel.protocol("WM_DELETE_WINDOW", quit) # Quit entire program
 
-    Vi_min_entry=createVoltageEntry(device_entry_toplevel, "Vi min", "0")
-    Vil_max_entry=createVoltageEntry(device_entry_toplevel, "Vil max", "0.8")
+    Vi_min_entry=createVoltageEntry(device_entry_toplevel, "Vi min", "0", "0")
+    Vil_max_entry=createVoltageEntry(device_entry_toplevel, "Vil max", "0", "0.8")
 
-    Vih_min_entry=createVoltageEntry(device_entry_toplevel, "Vih min", "2")
-    Vi_max_entry=createVoltageEntry(device_entry_toplevel, "Vi max", "5")
+    Vih_min_entry=createVoltageEntry(device_entry_toplevel, "Vih min", "0", "2")
+    Vi_max_entry=createVoltageEntry(device_entry_toplevel, "Vi max", "0", "5")
 
 
-    Vo_min_entry=createVoltageEntry(device_entry_toplevel, "Vo min", "0")
-    Vol_max_entry=createVoltageEntry(device_entry_toplevel, "Vol max", "0.4")
+    Vo_min_entry=createVoltageEntry(device_entry_toplevel, "Vo min", "0", "0")
+    Vol_max_entry=createVoltageEntry(device_entry_toplevel, "Vol max", "0", "0.4")
 
-    Voh_min_entry=createVoltageEntry(device_entry_toplevel, "Voh min", "2.4")
-    Vo_max_entry=createVoltageEntry(device_entry_toplevel, "Vo max", "5")
+    Voh_min_entry=createVoltageEntry(device_entry_toplevel, "Voh min", "0", "2.4")
+    Vo_max_entry=createVoltageEntry(device_entry_toplevel, "Vo max", "0", "5")
 
     name_entry= createEntryWrapper(device_entry_toplevel, "Name", "Default Device")
     Vcc_entry=createEntryWrapper(device_entry_toplevel, "Vcc", "5")
@@ -221,3 +221,82 @@ def spawnDeviceEntryTopLevel():
 
     Voh_min_entry.grid(column=2, row=2, padx=(15,5), pady=(0, 10))
     Vo_max_entry.grid(column=3, row=2, padx=(5,10), pady=(0, 10))
+
+
+def fetchNewDeviceEntry():
+    error_string = None
+    new_entry = {}
+    new_entry_name = entry_dict["Name"].get() #TOdo move
+    if(new_entry_name == ""):#TODO put in the import/export somewhere here
+        error_string = "Device name not provided"
+    elif(new_entry_name in app_common.device_entries):
+        error_string = "A device with this name already exists"
+    
+    new_entry["values"] = {}
+    new_entry["io_mode"] = io_mode_selection
+    new_entry["values"]["Vcc"] = entry_dict["Vcc"].get()
+    for entry_label in entry_dict:
+        if entry_label in ["Name", "Vcc"]:
+            continue
+        # Ignore inputs in output mode and outputs in input mode
+        if(((new_entry["io_mode"] == IO_OUTPUT_ONLY) and (entry_label in ["Vi min", "Vil max", "Vih min", "Vi max"])) or
+        ((new_entry["io_mode"] == IO_INPUT_ONLY) and (entry_label in ["Vo min", "Vol max", "Voh min", "Vo max"]))):
+            continue
+    if(error_string is None):
+        new_entry["values"] = {}
+        new_entry["io_mode"] = io_mode_selection
+        
+        try:
+            new_entry["values"]["Vcc"] = float(entry_dict["Vcc"].get())
+            for entry_label in entry_dict:
+                if entry_label in ["Name", "Vcc"]:
+                    continue
+                # Ignore inputs in output mode and outputs in input mode
+                if(((new_entry["io_mode"] == IO_OUTPUT_ONLY) and (entry_label in ["Vi min", "Vil max", "Vih min", "Vi max"])) or
+                ((new_entry["io_mode"] == IO_INPUT_ONLY) and (entry_label in ["Vo min", "Vol max", "Voh min", "Vo max"]))):
+                    continue
+                read_value = float(entry_dict[entry_label].get())
+                if(scale_modes[entry_label] == ABSOLUTE_SCALE):
+                    new_entry["values"][entry_label] = read_value
+                else:
+                    new_entry["values"][entry_label] = read_value*new_entry["values"]["Vcc"]
+
+                
+        except ValueError:
+            error_string = "All number fields must contain valid numbers"
+
+    if(error_string is None):
+        if(new_entry["io_mode"] != IO_OUTPUT_ONLY): # in-out / in only
+            if((new_entry["values"]["Vi min"] > new_entry["values"]["Vil max"])): #Vi min > Vil max
+                error_string = "Vi min must be <= Vil max(Vi min=" + \
+                    str(new_entry["values"]["Vi min"]) + ", Vil max=" + str(new_entry["values"]["Vil max"]) + ")"
+            
+            elif((new_entry["values"]["Vil max"] >= new_entry["values"]["Vih min"])): #Vil max >= Vih min
+                error_string = "Vil max must be < Vih min(Vil max=" + \
+                    str(new_entry["values"]["Vil max"]) + ", Vih min=" + str(new_entry["values"]["Vih min"]) + ")"
+            
+            elif((new_entry["values"]["Vih min"] > new_entry["values"]["Vi max"])): #Vih min > Vi max
+                error_string = "Vih min must be <= Vi max(Vih min=" + \
+                    str(new_entry["values"]["Vih min"]) + ", Vi max=" + str(new_entry["values"]["Vi max"]) + ")"
+
+        if(new_entry["io_mode"] != IO_INPUT_ONLY): # in-out / out only
+            if((new_entry["values"]["Vo min"] > new_entry["values"]["Vol max"])): #Vo min > Vol max
+                error_string = "Vo min must be <= Vol max(Vo min=" + \
+                    str(new_entry["values"]["Vo min"]) + ", Vol max=" + str(new_entry["values"]["Vol max"]) + ")"
+            
+            elif((new_entry["values"]["Vol max"] >= new_entry["values"]["Voh min"])): #Vol max >= Voh min
+                error_string = "Vol max must be < Voh min(Vol max=" + \
+                    str(new_entry["values"]["Vol max"]) + ", Voh min=" + str(new_entry["values"]["Voh min"]) + ")"
+            
+            elif((new_entry["values"]["Voh min"] > new_entry["values"]["Vo max"])): #Voh min > Vo max
+                error_string = "Voh min must be <= Vo max(Voh min=" + \
+                    str(new_entry["values"]["Voh min"]) + ", Vo max=" + str(new_entry["values"]["Vo max"]) + ")"
+            
+            elif((new_entry["values"]["Vo max"] > new_entry["values"]["Vcc"])): #Vo max > Vcc
+                error_string = "Vo max must be <= Vcc(Vo max=" + \
+                    str(new_entry["values"]["Vo max"]) + ", Vcc=" + str(new_entry["values"]["Vcc"]) + ")"
+                
+    return error_string
+
+def validateDeviceEntry():
+    pass

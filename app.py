@@ -16,4 +16,6 @@ add red text hightlighting(if possible) to dropdown to
 indicate device to be selected will not be compatible
 with currently selected OTHER device
 Add save to CSV feature
-Add import from CSV feature"""
+Add import from CSV feature
+cleanup import/export
+Add voltage linear equation instead of only VCC or only constant (x*Vcc + y)"""

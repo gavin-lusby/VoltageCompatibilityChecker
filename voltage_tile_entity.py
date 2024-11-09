@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import ttk
 from constants import *
 import app_common
+from file_ops import *
 
 tile_frame = Frame(master=app_common.app)
 tile_canvas = Canvas(master=tile_frame, width=DRAWING_WIDTH*2.5, height=DRAWING_HEIGHT+8, bg=APP_BG_COLOR)
@@ -188,14 +189,19 @@ def drawTree(device_entry, start_x, start_y, max_voltage):
 def spawnVoltageTile():
     tile_canvas.grid(column=0, row=0, columnspan=2)
 
-    Label(tile_frame, text="Output Device").grid(column=0,row=1)
-    Label(tile_frame, text="Input Device").grid(column=1,row=1)
 
     app_common.output_selector = ttk.Combobox(tile_frame, value=[])
     app_common.input_selector = ttk.Combobox(tile_frame, value=[])
     app_common.output_selector.bind("<<ComboboxSelected>>", updateSelector)
     app_common.input_selector.bind("<<ComboboxSelected>>", updateSelector)
+    export_button = Button(tile_frame, text="Export", command=exportCallback)
+    import_button = Button(tile_frame, text="Import", command=importCallback)
+
+    Label(tile_frame, text="Output Device").grid(column=0,row=1)
+    Label(tile_frame, text="Input Device").grid(column=1,row=1)
     app_common.output_selector.grid(column=0,row=2)
     app_common.input_selector.grid(column=1, row=2)
+    export_button.grid(column=0,row=3)
+    import_button.grid(column=1, row=3)
     tile_frame.pack()
     return tile_frame
