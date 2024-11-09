@@ -4,7 +4,7 @@ from constants import *
 import app_common
 
 tile_frame = Frame(master=app_common.app)
-tile_canvas = Canvas(master=tile_frame, width=DRAWING_WIDTH*2.5, height=DRAWING_HEIGHT, bg=APP_BG_COLOR)
+tile_canvas = Canvas(master=tile_frame, width=DRAWING_WIDTH*2.5, height=DRAWING_HEIGHT+8, bg=APP_BG_COLOR)
 
 # -------------------------------
 # ---------- CALLBACKS ----------
@@ -41,10 +41,55 @@ def redrawCanvas(device_input_name, device_output_name):
     
     max_voltage = max(max_voltage_in, max_voltage_out)
 
-    if(device_output_name != ""):
-        drawTree(device_entry_output, 2, 2, max_voltage)
+    if(device_output_name != ""): # For some reason, you need an X and Y offset of 2 pixels
+        v_heights_out = drawTree(device_entry_output, 2, 2+4, max_voltage)
     if(device_input_name != ""):
-        drawTree(device_entry_input, int(DRAWING_WIDTH*1.5+2), 2, max_voltage)
+        v_heights_in = drawTree(device_entry_input, int(DRAWING_WIDTH*1.5+2), 2+4, max_voltage)
+        
+    if((device_output_name != "") and (device_input_name != "")):
+        #Erase canvas center region:
+        tile_canvas.create_rectangle( \
+        (DRAWING_WIDTH+2, 2), \
+        (int(DRAWING_WIDTH*1.5+2), 2 + DRAWING_HEIGHT+8), \
+        fill=APP_BG_COLOR, width=0)
+
+        if(device_entry_output["values"]["Vo max"] > device_entry_input["values"]["Vi max"] or \
+           device_entry_output["values"]["Voh min"] < device_entry_input["values"]["Vih min"]):
+            top_poly_fill = "#F59191"
+            top_poly_outline = "#CC0000"
+        else:
+            top_poly_fill = "#91F591"
+            top_poly_outline = "#00CC00"
+
+        if(device_entry_output["values"]["Vol max"] > device_entry_input["values"]["Vil max"] or \
+           device_entry_output["values"]["Vo min"] < device_entry_input["values"]["Vi min"]):
+            bottom_poly_fill = "#F59191"
+            bottom_poly_outline = "#CC0000"
+        else:
+            bottom_poly_fill = "#91F591"
+            bottom_poly_outline = "#00CC00"
+
+        #Draw High input polygon
+        tile_canvas.create_polygon( \
+        (DRAWING_WIDTH+2, v_heights_out["Vo max"][0]), \
+        (int(DRAWING_WIDTH*1.5+2), v_heights_in["Vi max"][0]), \
+        (int(DRAWING_WIDTH*1.5+2), v_heights_in["Vih min"][1]), \
+        (DRAWING_WIDTH+2, v_heights_out["Voh min"][1]), \
+        fill=top_poly_fill, outline=top_poly_outline, width=4)
+        
+        #Draw Low input polygon
+        tile_canvas.create_polygon( \
+        (DRAWING_WIDTH+2, v_heights_out["Vo min"][1]), \
+        (int(DRAWING_WIDTH*1.5+2), v_heights_in["Vi min"][1]), \
+        (int(DRAWING_WIDTH*1.5+2), v_heights_in["Vil max"][0]), \
+        (DRAWING_WIDTH+2, v_heights_out["Vol max"][0]), \
+        fill=bottom_poly_fill, outline=bottom_poly_outline, width=4)
+
+        
+
+
+
+    
 
 def drawTree(device_entry, start_x, start_y, max_voltage):
 
@@ -53,6 +98,7 @@ def drawTree(device_entry, start_x, start_y, max_voltage):
     # How much to scale drawing by based on max_voltage(ie what the top of drawing should be)
     scale = (DRAWING_HEIGHT-1) / max_voltage
 
+    #Erase Canvas region
     tile_canvas.create_rectangle( \
         (start_x, start_y), \
         (start_x + DRAWING_WIDTH, start_y + DRAWING_HEIGHT), \
@@ -133,7 +179,7 @@ def drawTree(device_entry, start_x, start_y, max_voltage):
                 fill="#3737FF", width=0)
 
     # To see if we need to redraw other canvases
-    return max_voltage
+    return v_heights
 
 # -------------------------------
 # ---------- WRAPPERS -----------
