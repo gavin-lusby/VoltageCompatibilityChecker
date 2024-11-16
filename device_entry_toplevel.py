@@ -1,12 +1,8 @@
 from tkinter import *
 from constants import *
 import app_common
-from voltage_tile_entity import initializeValidatedDevice
+from voltage_tile_entity import validateDeviceEntryValues, initializeValidatedDevice
 
-ABSOLUTE_SCALE = 0
-VCC_RELATIVE_SCALE = 1
-scale_modes = {}#todo remove
-entry_dict = {}
 io_mode_selection = IO_BOTH
 entry_group = {} # Give this a better name TODO
 
@@ -69,24 +65,26 @@ def switchIOModeCallback():
 # -------------------------------
 
 def createEntryWrapper(wrapper_master, display_name, default_text=""):
-    entry_stringvar = StringVar()
     entry_frame = Frame(master=wrapper_master, bg="gray")
-    entry_field = Entry(entry_frame, fg="gray", textvariable=entry_stringvar)
+    entry_field = Entry(entry_frame, fg="gray")
     entry_label = Label(entry_frame, text=display_name, bg="gray")
-    entry_dict[display_name] = entry_stringvar
     
+    # Grid place elements
     entry_label.grid(column=0, columnspan=2, row=0, sticky="we")
     entry_field.grid(column=0, row=1, sticky="we")
-    entry_stringvar.set(default_text)
+
+    #Initialize default texts in new entries
+    entry_field.delete(0, END)
+    entry_field.insert(0, default_text)
+
+    # Add entry fields to entry_group
     entry_group[display_name] = entry_field
     return entry_frame
 
 def createVoltageEntry(wrapper_master, display_name, default_relative_v="0", default_abs_v="0"):
-    relative_v_stringvar = StringVar() #TODO: see if u can combine entry_dict and entry_group by getting rid of stringvars(entry_dict) and accessing entryfields directly
-    absolute_v_stringvar = StringVar()
     voltage_entry_frame = Frame(master=wrapper_master, bg=VOLATE_ENTRY_BG_COLOR, pady=5, padx=5)
-    entry_field_rel = Entry(voltage_entry_frame, fg="gray", textvariable=relative_v_stringvar, width=5)
-    entry_field_abs = Entry(voltage_entry_frame, fg="gray", textvariable=absolute_v_stringvar, width=5)
+    entry_field_rel = Entry(voltage_entry_frame, fg="gray", width=5)
+    entry_field_abs = Entry(voltage_entry_frame, fg="gray", width=5)
 
     vcc_label = Label(voltage_entry_frame, text="×Vcc +", bg=VOLATE_ENTRY_BG_COLOR)
     v_label = Label(voltage_entry_frame, text="V", bg=VOLATE_ENTRY_BG_COLOR)
@@ -165,8 +163,8 @@ def spawnDeviceEntryTopLevel():
 
 
 
-# Write better docstring: This fetches the data from the entries and creates an entry item out of it(returns error, takes entry by reference)
-def fetchNewDeviceEntry(new_entry): #TODO when called pass in {}
+# TODO Write better docstring: This fetches the data from the entries and creates an entry item out of it(returns error, takes entry by reference)
+def fetchNewDeviceEntry(new_entry):
 
     new_entry_name = entry_group["Name"].get()
 
@@ -197,34 +195,3 @@ def fetchNewDeviceEntry(new_entry): #TODO when called pass in {}
     except ValueError:
         return "All number fields must contain valid numbers"
 
-# TODO write docstring for this
-def validateDeviceEntryValues(device_entry):
-    if(device_entry["io_mode"] != IO_OUTPUT_ONLY): # in-out / in only
-        if((device_entry["values"]["Vi min"] > device_entry["values"]["Vil max"])): #Vi min > Vil max
-            return "Vi min must be <= Vil max(Vi min=" + \
-                str(device_entry["values"]["Vi min"]) + ", Vil max=" + str(device_entry["values"]["Vil max"]) + ")"
-        
-        elif((device_entry["values"]["Vil max"] >= device_entry["values"]["Vih min"])): #Vil max >= Vih min
-            return "Vil max must be < Vih min(Vil max=" + \
-                str(device_entry["values"]["Vil max"]) + ", Vih min=" + str(device_entry["values"]["Vih min"]) + ")"
-        
-        elif((device_entry["values"]["Vih min"] > device_entry["values"]["Vi max"])): #Vih min > Vi max
-            return "Vih min must be <= Vi max(Vih min=" + \
-                str(device_entry["values"]["Vih min"]) + ", Vi max=" + str(device_entry["values"]["Vi max"]) + ")"
-
-    if(device_entry["io_mode"] != IO_INPUT_ONLY): # in-out / out only
-        if((device_entry["values"]["Vo min"] > device_entry["values"]["Vol max"])): #Vo min > Vol max
-            return "Vo min must be <= Vol max(Vo min=" + \
-                str(device_entry["values"]["Vo min"]) + ", Vol max=" + str(device_entry["values"]["Vol max"]) + ")"
-        
-        elif((device_entry["values"]["Vol max"] >= device_entry["values"]["Voh min"])): #Vol max >= Voh min
-            return "Vol max must be < Voh min(Vol max=" + \
-                str(device_entry["values"]["Vol max"]) + ", Voh min=" + str(device_entry["values"]["Voh min"]) + ")"
-        
-        elif((device_entry["values"]["Voh min"] > device_entry["values"]["Vo max"])): #Voh min > Vo max
-            return "Voh min must be <= Vo max(Voh min=" + \
-                str(device_entry["values"]["Voh min"]) + ", Vo max=" + str(device_entry["values"]["Vo max"]) + ")"
-        
-        elif((device_entry["values"]["Vo max"] > device_entry["values"]["Vcc"])): #Vo max > Vcc
-            return "Vo max must be <= Vcc(Vo max=" + \
-                str(device_entry["values"]["Vo max"]) + ", Vcc=" + str(device_entry["values"]["Vcc"]) + ")"

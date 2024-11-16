@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import messagebox
 from constants import *
 import app_common
 import csv
@@ -51,8 +52,8 @@ def redrawCanvas(device_input_name, device_output_name):
     if((device_output_name != "") and (device_input_name != "")):
         #Erase canvas center region:
         tile_canvas.create_rectangle( \
-        (DRAWING_WIDTH+2, 2), \
-        (int(DRAWING_WIDTH*1.5+2), 2 + DRAWING_HEIGHT+8), \
+        (2+ DRAWING_WIDTH, 2), \
+        (2+ int(DRAWING_WIDTH*1.5), 2 + DRAWING_HEIGHT+8), \
         fill=APP_BG_COLOR, width=0)
 
         if(device_entry_output["values"]["Vo max"] > device_entry_input["values"]["Vi max"] or \
@@ -81,11 +82,18 @@ def redrawCanvas(device_input_name, device_output_name):
         
         #Draw Low input polygon
         tile_canvas.create_polygon( \
-        (DRAWING_WIDTH+2, v_heights_out["Vo min"][1]), \
-        (int(DRAWING_WIDTH*1.5+2), v_heights_in["Vi min"][1]), \
-        (int(DRAWING_WIDTH*1.5+2), v_heights_in["Vil max"][0]), \
-        (DRAWING_WIDTH+2, v_heights_out["Vol max"][0]), \
+        (2 + DRAWING_WIDTH, v_heights_out["Vo min"][1]), \
+        (2 + int(DRAWING_WIDTH*1.5), v_heights_in["Vi min"][1]), \
+        (2 + int(DRAWING_WIDTH*1.5), v_heights_in["Vil max"][0]), \
+        (2 + DRAWING_WIDTH, v_heights_out["Vol max"][0]), \
         fill=bottom_poly_fill, outline=bottom_poly_outline, width=4)
+
+        if(device_entry_output["io_mode"] == IO_BOTH):
+             tile_canvas.create_rectangle( \
+            (2, 2 + 4), \
+            (2 + DRAWING_WIDTH/2 - 2, 2 + DRAWING_HEIGHT+ 4), \
+            fill="red", width=0, alpha=.8)
+
 
 def exportCallback():
     savename = filedialog.asksaveasfilename(initialfile = "devices.csv")
@@ -104,35 +112,49 @@ def exportCallback():
     print(app_common.device_entries, savename)
 
 def importCallback():
+    error_list = []
     savename = filedialog.askopenfilename(initialfile = "devices.csv")
     with open(savename, 'r', newline='') as csvfile:
         reader = csv.reader(csvfile)
-        print(reader)
         for row in reader:
             device_entry = {}
-            device_entry["name"] = row[0] 
+            device_entry["name"] = row[0]
+            device_name = row[0]
+            device_entry["name"] = device_name
+            if(device_name in app_common.device_entries):
+                error_list.append(f"Error for device \"{device_name}\":\n A device with this name already exists\n This device will not be imported.\n")
+                continue
             device_entry["io_mode"] = int(row[1])
             device_entry["values"] = {}
-            device_entry["values"]["Vcc"] = float(row[2]) #todo safeguard this
-            if (device_entry["io_mode"] in [IO_BOTH, IO_INPUT_ONLY]):
-                device_entry["values"]["Vi min"] = float(row[3])
-                device_entry["values"]["Vil max"] = float(row[4])
-                device_entry["values"]["Vih min"] = float(row[5])
-                device_entry["values"]["Vi max"] = float(row[6])
-            elif (device_entry["io_mode"] == IO_OUTPUT_ONLY):
-                device_entry["values"]["Vo min"] = float(row[3])
-                device_entry["values"]["Vol max"] = float(row[4])
-                device_entry["values"]["Voh min"] = float(row[5])
-                device_entry["values"]["Vo max"] = float(row[6])
-            
-            if (device_entry["io_mode"] == IO_BOTH):
-                device_entry["values"]["Vo min"] = float(row[7])
-                device_entry["values"]["Vol max"] = float(row[8])
-                device_entry["values"]["Voh min"] = float(row[9])
-                device_entry["values"]["Vo max"] = float(row[10])
-
-    initializeValidatedDevice(device_entry)
-    print(app_common.device_entries, savename)#todo not done, need to populate and etc
+            try:
+                device_entry["values"]["Vcc"] = float(row[2])
+                if (device_entry["io_mode"] in [IO_BOTH, IO_INPUT_ONLY]):
+                    device_entry["values"]["Vi min"] = float(row[3])
+                    device_entry["values"]["Vil max"] = float(row[4])
+                    device_entry["values"]["Vih min"] = float(row[5])
+                    device_entry["values"]["Vi max"] = float(row[6])
+                elif (device_entry["io_mode"] == IO_OUTPUT_ONLY):
+                    device_entry["values"]["Vo min"] = float(row[3])
+                    device_entry["values"]["Vol max"] = float(row[4])
+                    device_entry["values"]["Voh min"] = float(row[5])
+                    device_entry["values"]["Vo max"] = float(row[6])
+                
+                if (device_entry["io_mode"] == IO_BOTH):
+                    device_entry["values"]["Vo min"] = float(row[7])
+                    device_entry["values"]["Vol max"] = float(row[8])
+                    device_entry["values"]["Voh min"] = float(row[9])
+                    device_entry["values"]["Vo max"] = float(row[10])
+            except ValueError:
+                error_list.append((f"Error for device \"{device_name}\":\n All number fields must contain valid numbers\n"
+                                  "This device will not be imported.\n"))
+                continue
+            error_msg = validateDeviceEntryValues(device_entry)
+            if(error_msg != None):
+                error_list.append(f"Error for device \"{device_name}\":\n {error_msg}\n This device will not be imported.\n")
+                continue
+            initializeValidatedDevice(device_entry)
+    if(len(error_list) > 0):
+        messagebox.showinfo(title="Import Errors", message="\n\n".join(error_list))
 
 
 # -------------------------------
@@ -227,14 +249,14 @@ def drawTree(device_entry, start_x, start_y, max_voltage):
             tile_canvas.create_rectangle( \
                 (start_x, v_heights["Vi max"][1]), \
                 (start_x + DRAWING_WIDTH/2 - 2, v_heights["Vih min"][0]), \
-                fill="#37AFFF", width=0)
+                fill=VOLTAGE_1_COLOR, width=0)
 
         #Acceptable Voltage In Logic 0
         if(v_heights["Vil max"][1] < v_heights["Vi min"][0]):
             tile_canvas.create_rectangle( \
                 (start_x, v_heights["Vil max"][1]), \
                 (start_x + DRAWING_WIDTH/2 - 2, v_heights["Vi min"][0]), \
-                fill="#3737FF", width=0)
+                fill=VOLTAGE_0_COLOR, width=0)
 
     if(device_entry["io_mode"] in [IO_BOTH, IO_OUTPUT_ONLY]):
         # Output Voltage Range Logic 1
@@ -242,18 +264,20 @@ def drawTree(device_entry, start_x, start_y, max_voltage):
             tile_canvas.create_rectangle( \
                 (start_x + DRAWING_WIDTH/2+2, v_heights["Vo max"][1]), \
                 (start_x + DRAWING_WIDTH, v_heights["Voh min"][0]), \
-                fill="#37AFFF", width=0)
+                fill=VOLTAGE_1_COLOR, width=0)
 
         # Output Voltage Range Logic 0
         if(v_heights["Vol max"][1] < v_heights["Vo min"][0]):
             tile_canvas.create_rectangle( \
                 (start_x + DRAWING_WIDTH/2+2, v_heights["Vol max"][1]), \
                 (start_x + DRAWING_WIDTH, v_heights["Vo min"][0]), \
-                fill="#3737FF", width=0)
+                fill=VOLTAGE_0_COLOR, width=0)
 
     # To see if we need to redraw other canvases
     return v_heights
 
+
+#TODO write docstring for this
 def initializeValidatedDevice(device_entry):
     device_name = device_entry["name"]
     app_common.device_entries[device_name] = device_entry
@@ -270,3 +294,35 @@ def initializeValidatedDevice(device_entry):
         if(app_common.output_selector.get() == ""):
             app_common.output_selector.set(device_name)
             redrawCanvas(app_common.input_selector.get(), device_name)
+
+# TODO write docstring for this
+def validateDeviceEntryValues(device_entry):
+    if(device_entry["io_mode"] != IO_OUTPUT_ONLY): # in-out / in only
+        if((device_entry["values"]["Vi min"] > device_entry["values"]["Vil max"])): #Vi min > Vil max
+            return "Vi min must be <= Vil max(Vi min=" + \
+                str(device_entry["values"]["Vi min"]) + ", Vil max=" + str(device_entry["values"]["Vil max"]) + ")"
+        
+        elif((device_entry["values"]["Vil max"] >= device_entry["values"]["Vih min"])): #Vil max >= Vih min
+            return "Vil max must be < Vih min(Vil max=" + \
+                str(device_entry["values"]["Vil max"]) + ", Vih min=" + str(device_entry["values"]["Vih min"]) + ")"
+        
+        elif((device_entry["values"]["Vih min"] > device_entry["values"]["Vi max"])): #Vih min > Vi max
+            return "Vih min must be <= Vi max(Vih min=" + \
+                str(device_entry["values"]["Vih min"]) + ", Vi max=" + str(device_entry["values"]["Vi max"]) + ")"
+
+    if(device_entry["io_mode"] != IO_INPUT_ONLY): # in-out / out only
+        if((device_entry["values"]["Vo min"] > device_entry["values"]["Vol max"])): #Vo min > Vol max
+            return "Vo min must be <= Vol max(Vo min=" + \
+                str(device_entry["values"]["Vo min"]) + ", Vol max=" + str(device_entry["values"]["Vol max"]) + ")"
+        
+        elif((device_entry["values"]["Vol max"] >= device_entry["values"]["Voh min"])): #Vol max >= Voh min
+            return "Vol max must be < Voh min(Vol max=" + \
+                str(device_entry["values"]["Vol max"]) + ", Voh min=" + str(device_entry["values"]["Voh min"]) + ")"
+        
+        elif((device_entry["values"]["Voh min"] > device_entry["values"]["Vo max"])): #Voh min > Vo max
+            return "Voh min must be <= Vo max(Voh min=" + \
+                str(device_entry["values"]["Voh min"]) + ", Vo max=" + str(device_entry["values"]["Vo max"]) + ")"
+        
+        elif((device_entry["values"]["Vo max"] > device_entry["values"]["Vcc"])): #Vo max > Vcc
+            return "Vo max must be <= Vcc(Vo max=" + \
+                str(device_entry["values"]["Vo max"]) + ", Vcc=" + str(device_entry["values"]["Vcc"]) + ")"
