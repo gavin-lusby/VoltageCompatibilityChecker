@@ -88,12 +88,6 @@ def redrawCanvas(device_input_name, device_output_name):
         (2 + DRAWING_WIDTH, v_heights_out["Vol max"][0]), \
         fill=bottom_poly_fill, outline=bottom_poly_outline, width=4)
 
-        if(device_entry_output["io_mode"] == IO_BOTH):
-             tile_canvas.create_rectangle( \
-            (2, 2 + 4), \
-            (2 + DRAWING_WIDTH/2 - 2, 2 + DRAWING_HEIGHT+ 4), \
-            fill="red", width=0, alpha=.8)
-
 
 def exportCallback():
     savename = filedialog.asksaveasfilename(initialfile = "devices.csv")
