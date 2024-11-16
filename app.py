@@ -3,7 +3,7 @@ from device_entry_toplevel import spawnDeviceEntryTopLevel
 from voltage_tile_entity import spawnVoltageTile
 import app_common
 
-app_common.app.geometry("500x500+0+220")
+app_common.app.geometry("500x500+0+250")
 spawnDeviceEntryTopLevel()
 spawnVoltageTile()
 

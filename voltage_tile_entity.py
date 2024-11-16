@@ -1,8 +1,9 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import filedialog
 from constants import *
 import app_common
-from file_ops import *
+import csv
 
 tile_frame = Frame(master=app_common.app)
 tile_canvas = Canvas(master=tile_frame, width=DRAWING_WIDTH*2.5, height=DRAWING_HEIGHT+8, bg=APP_BG_COLOR)
@@ -86,11 +87,82 @@ def redrawCanvas(device_input_name, device_output_name):
         (DRAWING_WIDTH+2, v_heights_out["Vol max"][0]), \
         fill=bottom_poly_fill, outline=bottom_poly_outline, width=4)
 
-        
+def exportCallback():
+    savename = filedialog.asksaveasfilename(initialfile = "devices.csv")
+    with open(savename, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        for device, device_data in app_common.device_entries.items():
+            writearray = [device, device_data["io_mode"], device_data["values"]["Vcc"]]
+            if (device_data["io_mode"] in [IO_BOTH, IO_INPUT_ONLY]):
+                writearray.extend([device_data["values"]["Vi min"], device_data["values"]["Vil max"], \
+                                  device_data["values"]["Vih min"], device_data["values"]["Vi max"]])
+            if (device_data["io_mode"] in [IO_BOTH, IO_OUTPUT_ONLY]):
+                writearray.extend([device_data["values"]["Vo min"], device_data["values"]["Vol max"], \
+                                  device_data["values"]["Voh min"], device_data["values"]["Vo max"]])
+
+            writer.writerow(writearray)
+    print(app_common.device_entries, savename)
+
+def importCallback():
+    savename = filedialog.askopenfilename(initialfile = "devices.csv")
+    with open(savename, 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        print(reader)
+        for row in reader:
+            device_entry = {}
+            device_entry["name"] = row[0] 
+            device_entry["io_mode"] = int(row[1])
+            device_entry["values"] = {}
+            device_entry["values"]["Vcc"] = float(row[2]) #todo safeguard this
+            if (device_entry["io_mode"] in [IO_BOTH, IO_INPUT_ONLY]):
+                device_entry["values"]["Vi min"] = float(row[3])
+                device_entry["values"]["Vil max"] = float(row[4])
+                device_entry["values"]["Vih min"] = float(row[5])
+                device_entry["values"]["Vi max"] = float(row[6])
+            elif (device_entry["io_mode"] == IO_OUTPUT_ONLY):
+                device_entry["values"]["Vo min"] = float(row[3])
+                device_entry["values"]["Vol max"] = float(row[4])
+                device_entry["values"]["Voh min"] = float(row[5])
+                device_entry["values"]["Vo max"] = float(row[6])
+            
+            if (device_entry["io_mode"] == IO_BOTH):
+                device_entry["values"]["Vo min"] = float(row[7])
+                device_entry["values"]["Vol max"] = float(row[8])
+                device_entry["values"]["Voh min"] = float(row[9])
+                device_entry["values"]["Vo max"] = float(row[10])
+
+    initializeValidatedDevice(device_entry)
+    print(app_common.device_entries, savename)#todo not done, need to populate and etc
 
 
+# -------------------------------
+# ---------- WRAPPERS -----------
+# -------------------------------
 
-    
+def spawnVoltageTile():
+    tile_canvas.grid(column=0, row=0, columnspan=2)
+
+
+    app_common.output_selector = ttk.Combobox(tile_frame, value=[])
+    app_common.input_selector = ttk.Combobox(tile_frame, value=[])
+    app_common.output_selector.bind("<<ComboboxSelected>>", updateSelector)
+    app_common.input_selector.bind("<<ComboboxSelected>>", updateSelector)
+    export_button = Button(tile_frame, text="Export", command=exportCallback)
+    import_button = Button(tile_frame, text="Import", command=importCallback)
+
+    Label(tile_frame, text="Output Device").grid(column=0,row=1)
+    Label(tile_frame, text="Input Device").grid(column=1,row=1)
+    app_common.output_selector.grid(column=0,row=2)
+    app_common.input_selector.grid(column=1, row=2)
+    export_button.grid(column=0,row=3)
+    import_button.grid(column=1, row=3)
+    tile_frame.pack()
+    return tile_frame
+
+
+# -------------------------------
+# ----------- OTHERS ------------
+# -------------------------------
 
 def drawTree(device_entry, start_x, start_y, max_voltage):
 
@@ -182,26 +254,19 @@ def drawTree(device_entry, start_x, start_y, max_voltage):
     # To see if we need to redraw other canvases
     return v_heights
 
-# -------------------------------
-# ---------- WRAPPERS -----------
-# -------------------------------
+def initializeValidatedDevice(device_entry):
+    device_name = device_entry["name"]
+    app_common.device_entries[device_name] = device_entry
+    if(device_entry["io_mode"] in [IO_BOTH, IO_INPUT_ONLY]):
+        app_common.input_device_options.append(device_name)
+        app_common.input_selector.configure(value=app_common.input_device_options)
+        if(app_common.input_selector.get() == ""):
+            app_common.input_selector.set(device_name)
+            redrawCanvas(device_name, app_common.output_selector.get())
 
-def spawnVoltageTile():
-    tile_canvas.grid(column=0, row=0, columnspan=2)
-
-
-    app_common.output_selector = ttk.Combobox(tile_frame, value=[])
-    app_common.input_selector = ttk.Combobox(tile_frame, value=[])
-    app_common.output_selector.bind("<<ComboboxSelected>>", updateSelector)
-    app_common.input_selector.bind("<<ComboboxSelected>>", updateSelector)
-    export_button = Button(tile_frame, text="Export", command=exportCallback)
-    import_button = Button(tile_frame, text="Import", command=importCallback)
-
-    Label(tile_frame, text="Output Device").grid(column=0,row=1)
-    Label(tile_frame, text="Input Device").grid(column=1,row=1)
-    app_common.output_selector.grid(column=0,row=2)
-    app_common.input_selector.grid(column=1, row=2)
-    export_button.grid(column=0,row=3)
-    import_button.grid(column=1, row=3)
-    tile_frame.pack()
-    return tile_frame
+    if(device_entry["io_mode"] in [IO_BOTH, IO_OUTPUT_ONLY]):
+        app_common.output_device_options.append(device_name)
+        app_common.output_selector.configure(value=app_common.output_device_options)
+        if(app_common.output_selector.get() == ""):
+            app_common.output_selector.set(device_name)
+            redrawCanvas(app_common.input_selector.get(), device_name)
