@@ -4,7 +4,7 @@ import app_common
 from voltage_tile_entity import validateDeviceEntryValues, initializeValidatedDevice
 
 io_mode_selection = IO_BOTH
-entry_group = {} # Give this a better name TODO
+entry_fields_dict = {} # Give this a better name TODO
 
 error_message = None # Label for error message
 io_button = None # Button to change IO mode
@@ -36,28 +36,28 @@ def switchIOModeCallback():
     if(io_mode_selection == IO_BOTH):
         io_button.configure(fg="red", text="IO Mode: Only In")
         io_mode_selection = IO_INPUT_ONLY
-        entry_group["Vo min"].configure(state="disabled")
-        entry_group["Vol max"].configure(state="disabled")
-        entry_group["Voh min"].configure(state="disabled")
-        entry_group["Vo max"].configure(state="disabled")
+        entry_fields_dict["Vo min"].configure(state="disabled")
+        entry_fields_dict["Vol max"].configure(state="disabled")
+        entry_fields_dict["Voh min"].configure(state="disabled")
+        entry_fields_dict["Vo max"].configure(state="disabled")
     elif(io_mode_selection == IO_INPUT_ONLY):
         io_button.configure(fg="green", text="IO Mode: Only Out")
         io_mode_selection = IO_OUTPUT_ONLY
-        entry_group["Vi min"].configure(state="disabled")
-        entry_group["Vil max"].configure(state="disabled")
-        entry_group["Vih min"].configure(state="disabled")
-        entry_group["Vi max"].configure(state="disabled")
-        entry_group["Vo min"].configure(state="normal")
-        entry_group["Vol max"].configure(state="normal")
-        entry_group["Voh min"].configure(state="normal")
-        entry_group["Vo max"].configure(state="normal")
+        entry_fields_dict["Vi min"].configure(state="disabled")
+        entry_fields_dict["Vil max"].configure(state="disabled")
+        entry_fields_dict["Vih min"].configure(state="disabled")
+        entry_fields_dict["Vi max"].configure(state="disabled")
+        entry_fields_dict["Vo min"].configure(state="normal")
+        entry_fields_dict["Vol max"].configure(state="normal")
+        entry_fields_dict["Voh min"].configure(state="normal")
+        entry_fields_dict["Vo max"].configure(state="normal")
     else:
         io_button.configure(fg="blue", text="IO Mode: In/Out")
         io_mode_selection = IO_BOTH
-        entry_group["Vi min"].configure(state="normal")
-        entry_group["Vil max"].configure(state="normal")
-        entry_group["Vih min"].configure(state="normal")
-        entry_group["Vi max"].configure(state="normal")
+        entry_fields_dict["Vi min"].configure(state="normal")
+        entry_fields_dict["Vil max"].configure(state="normal")
+        entry_fields_dict["Vih min"].configure(state="normal")
+        entry_fields_dict["Vi max"].configure(state="normal")
 
         
 # -------------------------------
@@ -77,8 +77,8 @@ def createEntryWrapper(wrapper_master, display_name, default_text=""):
     entry_field.delete(0, END)
     entry_field.insert(0, default_text)
 
-    # Add entry fields to entry_group
-    entry_group[display_name] = entry_field
+    # Add entry fields to entry_fields_dict
+    entry_fields_dict[display_name] = entry_field
     return entry_frame
 
 def createVoltageEntry(wrapper_master, display_name, default_relative_v="0", default_abs_v="0"):
@@ -103,8 +103,8 @@ def createVoltageEntry(wrapper_master, display_name, default_relative_v="0", def
     entry_field_rel.insert(0, default_relative_v)
     entry_field_abs.insert(0, default_abs_v)
 
-    # Add entry fields to entry_group
-    entry_group[display_name] = (entry_field_rel, entry_field_abs)
+    # Add entry fields to entry_fields_dict
+    entry_fields_dict[display_name] = (entry_field_rel, entry_field_abs)
     return voltage_entry_frame
 
 # -------------------------------
@@ -166,7 +166,7 @@ def spawnDeviceEntryTopLevel():
 # TODO Write better docstring: This fetches the data from the entries and creates an entry item out of it(returns error, takes entry by reference)
 def fetchNewDeviceEntry(new_entry):
 
-    new_entry_name = entry_group["Name"].get()
+    new_entry_name = entry_fields_dict["Name"].get()
 
     if(new_entry_name == ""):
         return "Device name not provided"
@@ -176,11 +176,11 @@ def fetchNewDeviceEntry(new_entry):
     new_entry["name"] = new_entry_name
     new_entry["values"] = {}
     new_entry["io_mode"] = io_mode_selection
-    new_entry["values"]["Vcc"] = entry_group["Vcc"].get()
+    new_entry["values"]["Vcc"] = entry_fields_dict["Vcc"].get()
         
     try:
-        new_entry["values"]["Vcc"] = float(entry_group["Vcc"].get())
-        for entry_label in entry_group:
+        new_entry["values"]["Vcc"] = float(entry_fields_dict["Vcc"].get())
+        for entry_label in entry_fields_dict:
             if entry_label in ["Name", "Vcc"]:
                 continue
             # Ignore inputs in output mode and outputs in input mode
@@ -188,8 +188,8 @@ def fetchNewDeviceEntry(new_entry):
             ((new_entry["io_mode"] == IO_INPUT_ONLY) and (entry_label in ["Vo min", "Vol max", "Voh min", "Vo max"]))):
                 continue
             # Voltage = A*Vcc + B
-            new_entry["values"][entry_label] = (new_entry["values"]["Vcc"]*float(entry_group[entry_label][0].get())) + \
-                                                float(entry_group[entry_label][1].get())
+            new_entry["values"][entry_label] = (new_entry["values"]["Vcc"]*float(entry_fields_dict[entry_label][0].get())) + \
+                                                float(entry_fields_dict[entry_label][1].get())
 
             
     except ValueError:
